@@ -43,7 +43,60 @@ def preprocess(data_path):
     
     return data
     
+
+def processTrainData(data):
+    # preprocessing the text
+    # 1. tokenizing the string
+    # 2. convert tweets in lower case and split the tweets into tokens(words)
+    # 3. remove stop words and punctuations
+    # 4. removing commonly used words like # and what not
+    # 5. stemming the words
     
+    # create a bag of words while preprocessing
+    bag = {}
+    for text in data['text']:
+        # tokenize the words
+        words = text.split()
+        # print(words)
+        
+        # remove the stop words
+        for word in words:
+            if word not in stopwords.words('english'):
+                # stemming the words
+                word = ps.stem(word)
+                if word in bag:
+                    bag[word] += 1
+                else:
+                    bag[word] = 1
+    
+    # print(len(bag))
+    
+    # create a countVectorizer
+    count_vector = []
+    for text in data['text']:
+        words = text.split()
+        
+        # get a Bag of words representation of this sentence
+        temp={}
+        for word in words:
+            if word in temp:
+                temp[word] += 1
+            else:
+                temp[word] = 1
+                
+        textVector=[]
+        for w in bag:
+            if w in temp:
+                textVector.append(temp[w])
+            else:
+                textVector.append(0)
+                
+        count_vector.append(textVector)
+           
+    count_vector=np.asarray(count_vector)
+    # print(len(count_vector))
+    
+    return bag, count_vector
     
 
 #################################
