@@ -32,6 +32,13 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 
+#Deep Learning libraries
+from tensorflow import keras
+import tensorflow as tf
+from keras.models import Sequential
+from keras.layers import Dense
+from keras import backend as K
+
 
 
 def preprocess(data_path):
@@ -41,7 +48,7 @@ def preprocess(data_path):
     i = 0
     for file in files:
         i = i + 1
-        if i > 10000:
+        if i > 1000:
             break
         str = "./data/jsons/" + file
         with open(str, 'r') as datafile:
@@ -154,7 +161,39 @@ def vec_for_learning(model, tagged_docs):
     classes, features = zip(*[(doc.tags[0],
       model.infer_vector(doc.words)) for doc in sents])
     return features, classes
+
+
+def prepare_data_keras(train_x,train_y,test_x,test_y):
+    tx = np.asarray(train_x)
+    ty = np.asarray(train_y)
+    tex = np.asarray(test_x)
+    tey = np.asarray(test_y)
     
+    ty = np.asarray(list([np.asarray([0,0,1]) if el == 0 else np.asarray([0,1,0]) 
+                    if el == 1 else np.asarray([1,0,0]) for el in ty]))
+    tey = np.asarray(list([np.asarray([0,0,1]) if el == 0 else np.asarray([0,1,0])
+                    if el == 1 else np.asarray([1,0,0]) for el in tey]))
+    
+    return tx,ty,tex,tey
+  
+  
+def recall_m(y_true, y_pred):
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+    recall = true_positives / (possible_positives + K.epsilon())
+    return recall
+
+def precision_m(y_true, y_pred):
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+    precision = true_positives / (predicted_positives + K.epsilon())
+    return precision
+
+def f1_m(y_true, y_pred):
+    precision = precision_m(y_true, y_pred)
+    recall = recall_m(y_true, y_pred)
+    return 2*((precision*recall)/(precision+recall+K.epsilon()))
+
 
 #################################
 #                               #
@@ -220,48 +259,75 @@ if __name__ == '__main__':
     train_x_1, train_y_1 = vec_for_learning(models[1], train_tagged)
     test_x_1, test_y_1 = vec_for_learning(models[1], test_tagged)
 
-    svc_0 = SVC()
-    svc_1 = SVC()
+    # svc_0 = SVC()
+    # svc_1 = SVC()
 
-    svc_0.fit(train_x_0,train_y_0)
-    svc_1.fit(train_x_1,train_y_1)
-    print(acc(test_y_0,svc_0.predict(test_x_0)))
-    print(acc(test_y_1,svc_1.predict(test_x_1)))
+    # svc_0.fit(train_x_0,train_y_0)
+    # svc_1.fit(train_x_1,train_y_1)
+    # print(acc(test_y_0,svc_0.predict(test_x_0)))
+    # print(acc(test_y_1,svc_1.predict(test_x_1)))
 
-    bayes_0 = GaussianNB()
-    bayes_1 = GaussianNB()
+    # bayes_0 = GaussianNB()
+    # bayes_1 = GaussianNB()
 
-    bayes_0.fit(train_x_0,train_y_0)
-    bayes_1.fit(train_x_1,train_y_1)
+    # bayes_0.fit(train_x_0,train_y_0)
+    # bayes_1.fit(train_x_1,train_y_1)
 
-    print(acc(test_y_0,bayes_0.predict(test_x_0)))
-    print(acc(test_y_1,bayes_1.predict(test_x_1)))
+    # print(acc(test_y_0,bayes_0.predict(test_x_0)))
+    # print(acc(test_y_1,bayes_1.predict(test_x_1)))
 
-    # Create random forests with 100 decision trees
-    forest_0 = RandomForestClassifier(n_estimators=100)
-    forest_1 = RandomForestClassifier(n_estimators=100)
+    # # Create random forests with 100 decision trees
+    # forest_0 = RandomForestClassifier(n_estimators=100)
+    # forest_1 = RandomForestClassifier(n_estimators=100)
 
-    forest_0.fit(train_x_0,train_y_0)
-    forest_1.fit(train_x_1,train_y_1)
+    # forest_0.fit(train_x_0,train_y_0)
+    # forest_1.fit(train_x_1,train_y_1)
 
-    print(acc(test_y_0,forest_0.predict(test_x_0)))
-    print(acc(test_y_1,forest_1.predict(test_x_1)))
+    # print(acc(test_y_0,forest_0.predict(test_x_0)))
+    # print(acc(test_y_1,forest_1.predict(test_x_1)))
 
-    # count values in train
-    left = 0 
-    center = 0 
-    right = 0
-    for i in train['bias']:
-        if (i == 0):
-            left += 1
-        elif(i == 1):
-            center += 1
-        elif(i == 2):
-            right += 1
+    # # count values in train
+    # left = 0 
+    # center = 0 
+    # right = 0
+    # for i in train['bias']:
+    #     if (i == 0):
+    #         left += 1
+    #     elif(i == 1):
+    #         center += 1
+    #     elif(i == 2):
+    #         right += 1
         
-    print(left)
-    print(center)
-    print(right)
+    # print(left)
+    # print(center)
+    # print(right)
+
+    # dl model Sequential
+
+    train_x_0, train_y_0, test_x_0, test_y_0 = prepare_data_keras(train_x_0, train_y_0, test_x_0, test_y_0)
+
+    deep_models = [Sequential(),Sequential()]
+    for model in deep_models:
+        print('here')
+        model.add(Dense(512, activation='relu', input_shape=(300,)))
+        model.add(Dense(256, activation='relu'))
+        model.add(Dense(64, activation='relu'))
+        model.add(Dense(3,activation='softmax'))
+        model.compile(loss='categorical_crossentropy',
+        optimizer=tf.keras.optimizers.Adam(learning_rate=0.000001),
+        metrics=['acc',recall_m,precision_m,f1_m])
+    # fit with 90 epochs
+    history_0 = deep_models[0].fit(train_x_0,train_y_0,epochs=90,validation_data=(test_x_0,test_y_0), verbose=0)
+    history_1 = deep_models[1].fit(train_x_0,train_y_0,epochs=90,validation_data=(test_x_0,test_y_0), verbose=1)
+    # evaluate the models
+    # fit with 90 epochs
+
+    print("testing 1 ")
+
+    for model in deep_models:
+        model.evaluate(test_x_0, test_y_0, batch_size=128)
+
+
 
 
 
