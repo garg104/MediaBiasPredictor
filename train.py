@@ -41,7 +41,7 @@ def preprocess(data_path):
     i = 0
     for file in files:
         i = i + 1
-        if i > 1000:
+        if i > 10000:
             break
         str = "./data/jsons/" + file
         with open(str, 'r') as datafile:
