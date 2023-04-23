@@ -16,6 +16,10 @@ import gensim
 from gensim.models.doc2vec import TaggedDocument
 from nltk.stem import WordNetLemmatizer
 
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.cluster import KMeans
+
 
 
 import warnings
@@ -156,7 +160,7 @@ def remove_stopwords(text):
     for word in words:
         if word not in stops:
             # text_no_stops += (' ' + lemmatizer.lemmatize(word))
-            text_no_stops += (' ' + ps.stem(word))
+            text_no_stops += (' ' + ps.stem(word.lower()))
             ps.stem(word)
     
     return text_no_stops
@@ -215,6 +219,45 @@ def f1_m(y_true, y_pred):
     precision = precision_m(y_true, y_pred)
     recall = recall_m(y_true, y_pred)
     return 2*((precision*recall)/(precision+recall+K.epsilon()))
+
+
+def vectorize_texts(list_of_strings):
+    print('Performing vectorization and TF/IDF transformation on texts...')
+    vectorizer = CountVectorizer()
+    X = vectorizer.fit_transform(list_of_strings)
+    transformer = TfidfTransformer(smooth_idf=False)
+    tfidf = transformer.fit_transform(X)
+    
+    # import pdb
+    # pdb.set_trace()
+    return tfidf
+
+
+def cluster_texts(num_clusters, tfidf):
+    #perform kmeans clustering for range of clusters
+    print('Beginning KMeans Clustering, number of clusters = ', num_clusters, '\n') 
+    km = KMeans(n_clusters=num_clusters, max_iter = 100, verbose = 2, n_init = 1).fit(tfidf)
+    
+    
+    return km
+
+
+
+
+def get_most_common_words(df, num_words):
+    common_words = []
+    from collections import Counter
+    for i in range(10):
+        common = Counter(df.loc[i]['stemmed'].split()).most_common(num_words)
+        # import pdb
+        # pdb.set_trace()
+        for j in common:
+            dict_ = {}
+            dict_['cluster'] = i
+            dict_['word'] = j[0]
+            common_words.append(dict_)
+            
+    return common_words
 
 
 #################################
@@ -358,12 +401,31 @@ if __name__ == '__main__':
     data['content2'] = data['content']
     
     for i in range(len(data['content2'])):
-        data['content2'].iloc[i] = remove_stops(data['content2'].iloc[i])
+        data['content2'].iloc[i] = remove_stopwords(data['content2'].iloc[i])
         if len(data['content2'].iloc[i]) >= 100:
-            data['content2'].iloc[i] = (data['content2'].iloc[i]).split()[:100]
+            data['content2'].iloc[i] = ' '.join((data['content2'].iloc[i]).split()[:100])
             
+
     
     
+    vectorized = vectorize_texts(data['content2'].to_list())
+    
+    
+    kmeans10 = cluster_texts(10, vectorized)
+    kmeansdf = pd.DataFrame()
+    kmeansdf['cluster10'] = kmeans10.labels_
+    kmeansdf['stemmed'] = data['content2']
+    
+    import seaborn as sns
+    # ax = sns.countplot(x= 'kmeans10', data=kmeansdf)
+    # ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
+    
+    
+    dic = get_most_common_words(kmeansdf, 25)
+    
+    import pdb
+    pdb.set_trace()
+
     
     
     
