@@ -4,13 +4,19 @@ import pandas as pd
 import nltk
 nltk.download('punkt')
 nltk.download('stopwords')
+nltk.download('wordnet')
+nltk.download('omw-1.4')
+from string import punctuation
 import re
 from nltk.tokenize import word_tokenize
-# from nltk.corpus import stopwords 
+from nltk.corpus import stopwords 
 from nltk.stem import PorterStemmer
 from gensim.models import Doc2Vec
 import gensim
 from gensim.models.doc2vec import TaggedDocument
+from nltk.stem import WordNetLemmatizer
+
+
 
 import warnings
 import argparse
@@ -134,11 +140,27 @@ def clean(text):
     text = text.lower()
     return text
 
-def remove_stopwords(content):
-    stopWords = set(stopwords.words('english'))
-    for word in stopWords:
-        content = content.replace(' '+word+' ',' ')
-    return content
+
+def remove_stopwords(text):
+    stops = list(set(stopwords.words('english'))) + list(punctuation) + ['s', "'", 't', 'and', '"', 'a', 'or', '/', 'in',
+                                                               'for', '&', '-', "''"]
+    text_no_stops = ''
+    lemmatizer = nltk.stem.WordNetLemmatizer()
+    
+    words = text.split()
+    # import pdb
+    # pdb.set_trace()
+
+        
+    # remove the stop words
+    for word in words:
+        if word not in stops:
+            # text_no_stops += (' ' + lemmatizer.lemmatize(word))
+            text_no_stops += (' ' + ps.stem(word))
+            ps.stem(word)
+    
+    return text_no_stops
+
 
 def tokenize_text(text):
     tokens = []
@@ -216,128 +238,140 @@ if __name__ == '__main__':
     # preprocess data
     data = preprocess(data_path='./data/jsons/')
 
-    print('done')
+    # print('done')
 
-    # bag, count_vector = processTrainData(data)
+    # # bag, count_vector = processTrainData(data)
 
-    # import pdb
-    # pdb.set_trace()
+    # # import pdb
+    # # pdb.set_trace()
 
-    train, test = train_test_split(data, test_size=0.2)
+    # train, test = train_test_split(data, test_size=0.2)
 
-    print('train = ',len(train))
-    print('test = ',len(test))
+    # print('train = ',len(train))
+    # print('test = ',len(test))
 
-    train_tagged = train.apply(
-    lambda r: TaggedDocument(words=tokenize_text(r['content']), tags=  [r.bias]), axis=1)
-    test_tagged = test.apply(
-    lambda r: TaggedDocument(words=tokenize_text(r['content']), tags=[r.bias]), axis=1)
+    # train_tagged = train.apply(
+    # lambda r: TaggedDocument(words=tokenize_text(r['content']), tags=  [r.bias]), axis=1)
+    # test_tagged = test.apply(
+    # lambda r: TaggedDocument(words=tokenize_text(r['content']), tags=[r.bias]), axis=1)
 
-    print('train = ',len(train_tagged))
-    print('test = ',len(test_tagged))
+    # print('train = ',len(train_tagged))
+    # print('test = ',len(test_tagged))
 
-    cores = multiprocessing.cpu_count()
-    models = [
-        # PV-DBOW 
-        Doc2Vec(dm=0, vector_size=300, negative=5, hs=0, sample=0, min_count=2, workers=cores),
-        # PV-DM
-        Doc2Vec(dm=1, vector_size=300, negative=5, hs=0, sample=0,    min_count=2, workers=cores)
-    ]
+    # cores = multiprocessing.cpu_count()
+    # models = [
+    #     # PV-DBOW 
+    #     Doc2Vec(dm=0, vector_size=300, negative=5, hs=0, sample=0, min_count=2, workers=cores),
+    #     # PV-DM
+    #     Doc2Vec(dm=1, vector_size=300, negative=5, hs=0, sample=0,    min_count=2, workers=cores)
+    # ]
 
-    for model in models:
-        model.build_vocab(train_tagged.values)
-        model.train(utils.shuffle(train_tagged.values),
-            total_examples=len(train_tagged.values),epochs=30)
+    # for model in models:
+    #     model.build_vocab(train_tagged.values)
+    #     model.train(utils.shuffle(train_tagged.values),
+    #         total_examples=len(train_tagged.values),epochs=30)
 
-    models[0].save("doc2vec_articles_0.model")
-    models[1].save("doc2vec_articles_1.model")
+    # models[0].save("doc2vec_articles_0.model")
+    # models[1].save("doc2vec_articles_1.model")
 
-    # PV_DBOW encoded text
-    train_x_0, train_y_0 = vec_for_learning(models[0], train_tagged)
-    test_x_0, test_y_0 = vec_for_learning(models[0], test_tagged)
-    # PV_DM encoded text
-    train_x_1, train_y_1 = vec_for_learning(models[1], train_tagged)
-    test_x_1, test_y_1 = vec_for_learning(models[1], test_tagged)
+    # # PV_DBOW encoded text
+    # train_x_0, train_y_0 = vec_for_learning(models[0], train_tagged)
+    # test_x_0, test_y_0 = vec_for_learning(models[0], test_tagged)
+    # # PV_DM encoded text
+    # train_x_1, train_y_1 = vec_for_learning(models[1], train_tagged)
+    # test_x_1, test_y_1 = vec_for_learning(models[1], test_tagged)
 
-    svc_0 = SVC()
-    svc_1 = SVC()
+    # svc_0 = SVC()
+    # svc_1 = SVC()
 
-    svc_0.fit(train_x_0,train_y_0)
-    svc_1.fit(train_x_1,train_y_1)
-    print(acc(test_y_0,svc_0.predict(test_x_0)))
-    print(acc(test_y_1,svc_1.predict(test_x_1)))
+    # svc_0.fit(train_x_0,train_y_0)
+    # svc_1.fit(train_x_1,train_y_1)
+    # print(acc(test_y_0,svc_0.predict(test_x_0)))
+    # print(acc(test_y_1,svc_1.predict(test_x_1)))
 
-    bayes_0 = GaussianNB()
-    bayes_1 = GaussianNB()
+    # bayes_0 = GaussianNB()
+    # bayes_1 = GaussianNB()
 
-    bayes_0.fit(train_x_0,train_y_0)
-    bayes_1.fit(train_x_1,train_y_1)
+    # bayes_0.fit(train_x_0,train_y_0)
+    # bayes_1.fit(train_x_1,train_y_1)
 
-    print(acc(test_y_0,bayes_0.predict(test_x_0)))
-    print(acc(test_y_1,bayes_1.predict(test_x_1)))
+    # print(acc(test_y_0,bayes_0.predict(test_x_0)))
+    # print(acc(test_y_1,bayes_1.predict(test_x_1)))
 
-    # Create random forests with 100 decision trees
-    forest_0 = RandomForestClassifier(n_estimators=100)
-    forest_1 = RandomForestClassifier(n_estimators=100)
+    # # Create random forests with 100 decision trees
+    # forest_0 = RandomForestClassifier(n_estimators=100)
+    # forest_1 = RandomForestClassifier(n_estimators=100)
 
-    forest_0.fit(train_x_0,train_y_0)
-    forest_1.fit(train_x_1,train_y_1)
+    # forest_0.fit(train_x_0,train_y_0)
+    # forest_1.fit(train_x_1,train_y_1)
 
-    print(acc(test_y_0,forest_0.predict(test_x_0)))
-    print(acc(test_y_1,forest_1.predict(test_x_1)))
+    # print(acc(test_y_0,forest_0.predict(test_x_0)))
+    # print(acc(test_y_1,forest_1.predict(test_x_1)))
 
-    # count values in train
-    left = 0 
-    center = 0 
-    right = 0
-    for i in train['bias']:
-        if (i == 0):
-            left += 1
-        elif(i == 1):
-            center += 1
-        elif(i == 2):
-            right += 1
+    # # count values in train
+    # left = 0 
+    # center = 0 
+    # right = 0
+    # for i in train['bias']:
+    #     if (i == 0):
+    #         left += 1
+    #     elif(i == 1):
+    #         center += 1
+    #     elif(i == 2):
+    #         right += 1
         
-    print(left)
-    print(center)
-    print(right)
+    # print(left)
+    # print(center)
+    # print(right)
 
-    # dl model Sequential
+    # # dl model Sequential
 
-    train_x_0, train_y_0, test_x_0, test_y_0 = prepare_data_keras(train_x_0, train_y_0, test_x_0, test_y_0)
+    # train_x_0, train_y_0, test_x_0, test_y_0 = prepare_data_keras(train_x_0, train_y_0, test_x_0, test_y_0)
 
-    deep_models = [Sequential(),Sequential()]
-    for model in deep_models:
-        print('here')
-        model.add(Dense(512, activation='relu', input_shape=(300,)))
-        model.add(Dense(256, activation='relu'))
-        model.add(Dense(64, activation='relu'))
-        model.add(Dense(3,activation='softmax'))
-        model.compile(loss='categorical_crossentropy',
-        optimizer=tf.keras.optimizers.Adam(learning_rate=0.000001),
-        metrics=['acc',recall_m,precision_m,f1_m])
-    # fit with 90 epochs
-    history_0 = deep_models[0].fit(train_x_0,train_y_0,epochs=90,validation_data=(test_x_0,test_y_0), verbose=0)
-    history_1 = deep_models[1].fit(train_x_0,train_y_0,epochs=90,validation_data=(test_x_0,test_y_0), verbose=1)
-    # evaluate the models
-    # fit with 90 epochs
+    # deep_models = [Sequential(),Sequential()]
+    # for model in deep_models:
+    #     print('here')
+    #     model.add(Dense(512, activation='relu', input_shape=(300,)))
+    #     model.add(Dense(256, activation='relu'))
+    #     model.add(Dense(64, activation='relu'))
+    #     model.add(Dense(3,activation='softmax'))
+    #     model.compile(loss='categorical_crossentropy',
+    #     optimizer=tf.keras.optimizers.Adam(learning_rate=0.000001),
+    #     metrics=['acc',recall_m,precision_m,f1_m])
+    # # fit with 90 epochs
+    # history_0 = deep_models[0].fit(train_x_0,train_y_0,epochs=90,validation_data=(test_x_0,test_y_0), verbose=0)
+    # history_1 = deep_models[1].fit(train_x_0,train_y_0,epochs=90,validation_data=(test_x_0,test_y_0), verbose=1)
+    # # evaluate the models
+    # # fit with 90 epochs
 
-    print("testing 1 ")
+    # print("testing 1 ")
 
-    for model in deep_models:
-        model.evaluate(test_x_0, test_y_0, batch_size=128)
+    # for model in deep_models:
+    #     model.evaluate(test_x_0, test_y_0, batch_size=128)
         
         
         
         
     #######################################################################################################
     
+    # only have 100 words and we need to remove stop words and then perform lemmatization.
+    data['content2'] = data['content']
+    
+    for i in range(len(data['content2'])):
+        data['content2'].iloc[i] = remove_stops(data['content2'].iloc[i])
+        if len(data['content2'].iloc[i]) >= 100:
+            data['content2'].iloc[i] = (data['content2'].iloc[i]).split()[:100]
+            
     
     
     
     
-
-
+    
+    
+        
+    
+    
+    
 
 
 
