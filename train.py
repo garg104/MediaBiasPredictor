@@ -58,7 +58,7 @@ def preprocess(data_path):
     i = 0
     for file in files:
         i = i + 1
-        if i > 37000:
+        if i > 100:
             break
         str = "./data/jsons/" + file
         with open(str, 'r') as datafile:
@@ -445,11 +445,13 @@ if __name__ == '__main__':
     
     vectorized = vectorize_texts(data['content2'].to_list())
     
-    clusters = 50
+    clusters = 10
     kmeans = cluster_texts(clusters, vectorized)
     kmeansdf = pd.DataFrame()
+    import pdb
+    pdb.set_trace()
     kmeansdf['cluster'] = kmeans.labels_
-    kmeansdf['stemmed'] = data['content2']
+    c = data['content2']
     
     import seaborn as sns
     # ax = sns.countplot(x= 'kmeans10', data=kmeansdf)
