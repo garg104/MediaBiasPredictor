@@ -58,7 +58,7 @@ def preprocess(data_path):
     i = 0
     for file in files:
         i = i + 1
-        if i > 1000:
+        if i > 37000:
             break
         str = "./data/jsons/" + file
         with open(str, 'r') as datafile:
@@ -244,18 +244,44 @@ def cluster_texts(num_clusters, tfidf):
 
 
 
-def get_most_common_words(df, num_words):
-    common_words = []
+def get_most_common_words(df, num_words, clusters):
+    
+    
+    cluster_dic = {}
+    for i in range(df.shape[0]):
+        if cluster_dic.get(df.loc[i]['cluster']):
+            cluster_dic[df.loc[i]['cluster']] = cluster_dic[df.loc[i]['cluster']] + " " + df.loc[i]['stemmed']
+        else: 
+            cluster_dic[df.loc[i]['cluster']] = df.loc[i]['stemmed']
+    
+    
+    
+    common_words = {}
     from collections import Counter
-    for i in range(10):
-        common = Counter(df.loc[i]['stemmed'].split()).most_common(num_words)
+    for i in range(clusters):
+        content = cluster_dic[i]
+        common = Counter(content.split()).most_common(num_words)
         # import pdb
         # pdb.set_trace()
+        list = []
         for j in common:
-            dict_ = {}
-            dict_['cluster'] = i
-            dict_['word'] = j[0]
-            common_words.append(dict_)
+            # common_words['cluster'] = i
+            list.append(j[0])
+        common_words[i] = list
+    
+    
+    # for i in range(clusters):
+    #     import pdb
+    #     pdb.set_trace()
+    #     common = Counter(df.loc[i]['stemmed'].split()).most_common(num_words)
+    #     # common_words['cluster'] = i
+    #     list = []
+    #     for j in common:
+    #         # common_words['cluster'] = i
+    #         list.append(j[0])
+    #     common_words[i] = list
+    #     # import pdb
+    #     # pdb.set_trace()
             
     return common_words
 
@@ -280,6 +306,15 @@ if __name__ == '__main__':
     
     # preprocess data
     data = preprocess(data_path='./data/jsons/')
+
+
+
+    # topics = data['topic'].unique()
+    
+    # print(topics)
+    # exit()
+
+
 
     # print('done')
 
@@ -410,10 +445,10 @@ if __name__ == '__main__':
     
     vectorized = vectorize_texts(data['content2'].to_list())
     
-    
-    kmeans10 = cluster_texts(10, vectorized)
+    clusters = 50
+    kmeans = cluster_texts(clusters, vectorized)
     kmeansdf = pd.DataFrame()
-    kmeansdf['cluster10'] = kmeans10.labels_
+    kmeansdf['cluster'] = kmeans.labels_
     kmeansdf['stemmed'] = data['content2']
     
     import seaborn as sns
@@ -421,10 +456,11 @@ if __name__ == '__main__':
     # ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
     
     
-    dic = get_most_common_words(kmeansdf, 25)
-    
-    import pdb
-    pdb.set_trace()
+    dic = get_most_common_words(kmeansdf, 25, clusters)
+    for i in range(clusters):
+        print(dic[i])
+    # import pdb
+    # pdb.set_trace()
 
     
     
