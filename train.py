@@ -276,18 +276,27 @@ def cluster_texts(num_clusters, tfidf):
 
 
 
-def get_most_common_words(df, num_words):
-    common_words = []
+def get_most_common_words(df, num_words, clusters):
+    cluster_dic = {}
+    for i in range(df.shape[0]):
+        if cluster_dic.get(df.loc[i]['cluster']):
+            cluster_dic[df.loc[i]['cluster']] = cluster_dic[df.loc[i]['cluster']] + " " + df.loc[i]['stemmed']
+        else: 
+            cluster_dic[df.loc[i]['cluster']] = df.loc[i]['stemmed']
+    
+    
+    
+    common_words = {}
     from collections import Counter
-    for i in range(10):
-        common = Counter(df.loc[i]['stemmed'].split()).most_common(num_words)
-        # import pdb
-        # pdb.set_trace()
+    for i in range(clusters):
+        content = cluster_dic[i]
+        common = Counter(content.split()).most_common(num_words)
+        list = []
         for j in common:
-            dict_ = {}
-            dict_['cluster'] = i
-            dict_['word'] = j[0]
-            common_words.append(dict_)
+            list.append(j[0])
+        common_words[i] = list
+    
+
             
     return common_words
 
@@ -315,7 +324,7 @@ if __name__ == '__main__':
     
     
     ########## preprocess data ##########
-    # data = preprocess(data_path='./data/jsons/')
+    data = preprocess(data_path='./data/jsons/')
 
 
     ########## random division ##########
@@ -461,46 +470,33 @@ if __name__ == '__main__':
         
     #######################################################################################################
     
-    # only have 100 words and we need to remove stop words and then perform lemmatization.
-    # data['content2'] = data['content']
+    data['content2'] = data['content']
     
-    # for i in range(len(data['content2'])):
-    #     data['content2'].iloc[i] = remove_stopwords(data['content2'].iloc[i])
-    #     if len(data['content2'].iloc[i]) >= 100:
-    #         data['content2'].iloc[i] = ' '.join((data['content2'].iloc[i]).split()[:100])
+    for i in range(len(data['content2'])):
+        data['content2'].iloc[i] = remove_stopwords(data['content2'].iloc[i])
+        if len(data['content2'].iloc[i]) >= 100:
+            data['content2'].iloc[i] = ' '.join((data['content2'].iloc[i]).split()[:100])
             
 
     
     
-    # vectorized = vectorize_texts(data['content2'].to_list())
+    vectorized = vectorize_texts(data['content2'].to_list())
+    
+    clusters = 10
+    kmeans = cluster_texts(clusters, vectorized)
+    kmeansdf = pd.DataFrame()
+    import pdb
+    pdb.set_trace()
+    kmeansdf['cluster'] = kmeans.labels_
+    kmeansdf['stemmed'] = data['content2']
+    
+    import seaborn as sns
+    # ax = sns.countplot(x= 'kmeans10', data=kmeansdf)
+    # ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
     
     
-    # kmeans10 = cluster_texts(10, vectorized)
-    # kmeansdf = pd.DataFrame()
-    # kmeansdf['cluster10'] = kmeans10.labels_
-    # kmeansdf['stemmed'] = data['content2']
-    
-    # import seaborn as sns
-    # # ax = sns.countplot(x= 'kmeans10', data=kmeansdf)
-    # # ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
-    
-    
-    dic = get_most_common_words(kmeansdf, 25)
-    
+    dic = get_most_common_words(kmeansdf, 25, clusters)
+    for i in range(clusters):
+        print(dic[i])
     # import pdb
     # pdb.set_trace()
-
-    
-    
-    
-    
-        
-    
-    
-    
-
-
-
-    
-    
-        
