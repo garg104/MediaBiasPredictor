@@ -485,7 +485,7 @@ if __name__ == '__main__':
     # # ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
     
     
-    # dic = get_most_common_words(kmeansdf, 25)
+    dic = get_most_common_words(kmeansdf, 25)
     
     # import pdb
     # pdb.set_trace()
