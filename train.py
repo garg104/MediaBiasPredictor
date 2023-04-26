@@ -146,6 +146,9 @@ def clean(text):
 
 
 def remove_stopwords(text):
+    import string
+    text = text.translate(str.maketrans('','', string.punctuation))
+    # text = clean(text)
     stops = list(set(stopwords.words('english'))) + list(punctuation) + ['s', "'", 't', 'and', '"', 'a', 'or', '/', 'in',
                                                                'for', '&', '-', "''"]
     text_no_stops = ''
@@ -160,8 +163,9 @@ def remove_stopwords(text):
     for word in words:
         if word not in stops:
             # text_no_stops += (' ' + lemmatizer.lemmatize(word))
-            text_no_stops += (' ' + ps.stem(word.lower()))
-            ps.stem(word)
+            # text_no_stops += (' ' + ps.stem(word.lower()))
+            text_no_stops += (' ' + (word.lower()))
+            # ps.stem(word)
     
     return text_no_stops
 
@@ -284,7 +288,8 @@ def get_most_common_words(df, num_words, clusters):
         else: 
             cluster_dic[df.loc[i]['cluster']] = df.loc[i]['stemmed']
     
-    
+    # import pdb
+    # pdb.set_trace()
     
     common_words = {}
     from collections import Counter
@@ -324,7 +329,7 @@ if __name__ == '__main__':
     
     
     ########## preprocess data ##########
-    data = preprocess(data_path='./data/jsons/')
+    # new = preprocess(data_path='./data/jsons/')
 
 
     ########## random division ##########
@@ -377,100 +382,113 @@ if __name__ == '__main__':
     train = pd.DataFrame()
     test = pd.DataFrame()
 
-    train = pd.read_csv("train_data_r.csv")
-    test = pd.read_csv("test_data_r.csv")
+    train = pd.read_csv("train_data.csv")
+    test = pd.read_csv("test_data.csv")
+    
+    # # import pdb
+    # # pdb.set_trace()
+    
+    new = pd.concat([train, test])
 
     train_tagged, test_tagged = tag_data(train, test)
 
 
     ########## build DOc2Vec models ##########
 
-    cores = multiprocessing.cpu_count()
-    models = [
-        # PV-DBOW 
-        Doc2Vec(dm=0, vector_size=300, negative=5, hs=0, sample=0, min_count=2, workers=cores),
-        # PV-DM
-        Doc2Vec(dm=1, vector_size=300, negative=5, hs=0, sample=0,    min_count=2, workers=cores)
-    ]
+    # cores = multiprocessing.cpu_count()
+    # models = [
+    #     # PV-DBOW 
+    #     Doc2Vec(dm=0, vector_size=300, negative=5, hs=0, sample=0, min_count=2, workers=cores),
+    #     # PV-DM
+    #     Doc2Vec(dm=1, vector_size=300, negative=5, hs=0, sample=0,    min_count=2, workers=cores)
+    # ]
 
-    for model in models:
-        model.build_vocab(train_tagged.values)
-        model.train(utils.shuffle(train_tagged.values),
-            total_examples=len(train_tagged.values),epochs=30)
+    # for model in models:
+    #     model.build_vocab(train_tagged.values)
+    #     model.train(utils.shuffle(train_tagged.values),
+    #         total_examples=len(train_tagged.values),epochs=30)
 
-    models[0].save("doc2vec_articles_0.model")
-    models[1].save("doc2vec_articles_1.model")
+    # models[0].save("doc2vec_articles_0.model")
+    # models[1].save("doc2vec_articles_1.model")
 
-    # PV_DBOW encoded text
-    train_x_0, train_y_0 = vec_for_learning(models[0], train_tagged)
-    test_x_0, test_y_0 = vec_for_learning(models[0], test_tagged)
+    # # PV_DBOW encoded text
+    # train_x_0, train_y_0 = vec_for_learning(models[0], train_tagged)
+    # test_x_0, test_y_0 = vec_for_learning(models[0], test_tagged)
 
-    # PV_DM encoded text
-    train_x_1, train_y_1 = vec_for_learning(models[1], train_tagged)
-    test_x_1, test_y_1 = vec_for_learning(models[1], test_tagged)
-
-
-    ########## SVC ##########
-
-    svc_0, svc_1 = train_SVC(train_x_0, train_y_0, train_x_1, train_y_1)
-
-    accuracy_model_0 = acc(test_y_0, svc_0.predict(test_x_0))
-    accuracy_model_1 = acc(test_y_1, svc_1.predict(test_x_1))
-
-    print("SVC accuracy model 0: ", accuracy_model_0)
-    print("SVC accuracy model 1: ", accuracy_model_1)
+    # # PV_DM encoded text
+    # train_x_1, train_y_1 = vec_for_learning(models[1], train_tagged)
+    # test_x_1, test_y_1 = vec_for_learning(models[1], test_tagged)
 
 
-    ########## Naive Bayes ##########
+    # ########## SVC ##########
 
-    bayes_0, bayes_1 = train_NB(train_x_0, train_y_0, train_x_1, train_y_1)
+    # svc_0, svc_1 = train_SVC(train_x_0, train_y_0, train_x_1, train_y_1)
 
-    accuracy_model_0 = acc(test_y_0, bayes_0.predict(test_x_0))
-    accuracy_model_1 = acc(test_y_1, bayes_1.predict(test_x_1))
+    # accuracy_model_0 = acc(test_y_0, svc_0.predict(test_x_0))
+    # accuracy_model_1 = acc(test_y_1, svc_1.predict(test_x_1))
 
-    print("NB accuracy model 0: ", accuracy_model_0)
-    print("NB accuracy model 1: ", accuracy_model_1)
-
-
-    ########## Random Forest ##########
-
-    forest_0, forest_1 = train_RF(train_x_0, train_y_0, train_x_1, train_y_1)
-
-    accuracy_model_0 = acc(test_y_0, forest_0.predict(test_x_0))
-    accuracy_model_1 = acc(test_y_1, forest_1.predict(test_x_1))
-
-    print("RF accuracy model 0: ", accuracy_model_0)
-    print("RF accuracy model 1: ", accuracy_model_1)
+    # print("SVC accuracy model 0: ", accuracy_model_0)
+    # print("SVC accuracy model 1: ", accuracy_model_1)
 
 
-    ########## DL model Sequential ##########
+    # ########## Naive Bayes ##########
 
-    train_x_0, train_y_0, test_x_0, test_y_0 = prepare_data_keras(train_x_0, train_y_0, test_x_0, test_y_0)
+    # bayes_0, bayes_1 = train_NB(train_x_0, train_y_0, train_x_1, train_y_1)
 
-    deep_models = [Sequential(),Sequential()]
+    # accuracy_model_0 = acc(test_y_0, bayes_0.predict(test_x_0))
+    # accuracy_model_1 = acc(test_y_1, bayes_1.predict(test_x_1))
 
-    for model in deep_models:
-        model.add(Dense(512, activation='relu', input_shape=(300,)))
-        model.add(Dense(256, activation='relu'))
-        model.add(Dense(64, activation='relu'))
-        model.add(Dense(3,activation='softmax'))
-        model.compile(loss='categorical_crossentropy',
-            optimizer=tf.keras.optimizers.Adam(learning_rate=0.000001),
-            metrics=['acc',recall_m,precision_m,f1_m])
+    # print("NB accuracy model 0: ", accuracy_model_0)
+    # print("NB accuracy model 1: ", accuracy_model_1)
 
-    # fit with 90 epochs
-    history_0 = deep_models[0].fit(train_x_0,train_y_0,epochs=90,validation_data=(test_x_0,test_y_0), verbose=1)
-    history_1 = deep_models[1].fit(train_x_0,train_y_0,epochs=90,validation_data=(test_x_0,test_y_0), verbose=0)
+
+    # ########## Random Forest ##########
+
+    # forest_0, forest_1 = train_RF(train_x_0, train_y_0, train_x_1, train_y_1)
+
+    # accuracy_model_0 = acc(test_y_0, forest_0.predict(test_x_0))
+    # accuracy_model_1 = acc(test_y_1, forest_1.predict(test_x_1))
+
+    # print("RF accuracy model 0: ", accuracy_model_0)
+    # print("RF accuracy model 1: ", accuracy_model_1)
+
+
+    # ########## DL model Sequential ##########
+
+    # train_x_0, train_y_0, test_x_0, test_y_0 = prepare_data_keras(train_x_0, train_y_0, test_x_0, test_y_0)
+
+    # deep_models = [Sequential(),Sequential()]
+
+    # for model in deep_models:
+    #     model.add(Dense(512, activation='relu', input_shape=(300,)))
+    #     model.add(Dense(256, activation='relu'))
+    #     model.add(Dense(64, activation='relu'))
+    #     model.add(Dense(3,activation='softmax'))
+    #     model.compile(loss='categorical_crossentropy',
+    #         optimizer=tf.keras.optimizers.Adam(learning_rate=0.000001),
+    #         metrics=['acc',recall_m,precision_m,f1_m])
+
+    # # fit with 90 epochs
+    # history_0 = deep_models[0].fit(train_x_0,train_y_0,epochs=90,validation_data=(test_x_0,test_y_0), verbose=1)
+    # history_1 = deep_models[1].fit(train_x_0,train_y_0,epochs=90,validation_data=(test_x_0,test_y_0), verbose=0)
     
-    # evaluate the models
-    for model in deep_models:
-        model.evaluate(test_x_0, test_y_0, batch_size=128)
+    # # evaluate the models
+    # for model in deep_models:
+    #     model.evaluate(test_x_0, test_y_0, batch_size=128)
 
         
         
     #######################################################################################################
     
-    data['content2'] = data['content']
+    
+    
+    # import pdb
+    # pdb.set_trace()
+    
+    data = pd.DataFrame()
+    data['content'] = new['content']
+    data['bias'] = new['bias']
+    data['content2'] = new['content']
     
     for i in range(len(data['content2'])):
         data['content2'].iloc[i] = remove_stopwords(data['content2'].iloc[i])
@@ -482,13 +500,22 @@ if __name__ == '__main__':
     
     vectorized = vectorize_texts(data['content2'].to_list())
     
-    clusters = 10
+    clusters = 50
     kmeans = cluster_texts(clusters, vectorized)
     kmeansdf = pd.DataFrame()
-    import pdb
-    pdb.set_trace()
+    
+    # import pdb
+    # pdb.set_trace()
+
     kmeansdf['cluster'] = kmeans.labels_
     kmeansdf['stemmed'] = data['content2']
+    kmeansdf['bias'] = data['bias']
+    
+    kmeansdf.to_csv('clustered_m.csv')
+    
+    # import pdb
+    # pdb.set_trace()
+    
     
     import seaborn as sns
     # ax = sns.countplot(x= 'kmeans10', data=kmeansdf)
@@ -498,5 +525,3 @@ if __name__ == '__main__':
     dic = get_most_common_words(kmeansdf, 25, clusters)
     for i in range(clusters):
         print(dic[i])
-    # import pdb
-    # pdb.set_trace()
