@@ -277,8 +277,6 @@ def cluster_texts(num_clusters, tfidf):
     return km
 
 
-
-
 def get_most_common_words(df, num_words, clusters):
     cluster_dic = {}
     for i in range(df.shape[0]):
@@ -312,10 +310,6 @@ def tag_data(train, test):
     lambda r: TaggedDocument(words=tokenize_text(r['content']), tags=[r.bias]), axis=1)
 
     return train_tagged, test_tagged
-
-
-
-
 
 
 def  make_clusters(data):
@@ -435,40 +429,41 @@ if __name__ == '__main__':
     train = pd.DataFrame()
     test = pd.DataFrame()
 
-    train = pd.read_csv("train_data.csv")
-    test = pd.read_csv("test_data.csv")
+    train = pd.read_csv("train_data_r_c_1000.csv")
+    test = pd.read_csv("test_data_r_c_1000.csv")
     
-    # # import pdb
-    # # pdb.set_trace()
 
     train_tagged, test_tagged = tag_data(train, test)
 
 
     ########## build DOc2Vec models ##########
 
-    # cores = multiprocessing.cpu_count()
-    # models = [
-    #     # PV-DBOW 
-    #     Doc2Vec(dm=0, vector_size=300, negative=5, hs=0, sample=0, min_count=2, workers=cores),
-    #     # PV-DM
-    #     Doc2Vec(dm=1, vector_size=300, negative=5, hs=0, sample=0,    min_count=2, workers=cores)
-    # ]
+    cores = multiprocessing.cpu_count()
+    models = [
+        # PV-DBOW 
+        Doc2Vec(dm=0, vector_size=300, negative=5, hs=0, sample=0, min_count=2, workers=cores),
+        # PV-DM
+        Doc2Vec(dm=1, vector_size=300, negative=5, hs=0, sample=0,    min_count=2, workers=cores)
+    ]
 
-    # for model in models:
-    #     model.build_vocab(train_tagged.values)
-    #     model.train(utils.shuffle(train_tagged.values),
-    #         total_examples=len(train_tagged.values),epochs=30)
+    for model in models:
+        model.build_vocab(train_tagged.values)
+        model.train(utils.shuffle(train_tagged.values),
+            total_examples=len(train_tagged.values),epochs=30)
 
-    # models[0].save("doc2vec_articles_0.model")
-    # models[1].save("doc2vec_articles_1.model")
+    models[0].save("doc2vec_articles_0.model")
+    models[1].save("doc2vec_articles_1.model")
 
-    # # PV_DBOW encoded text
-    # train_x_0, train_y_0 = vec_for_learning(models[0], train_tagged)
-    # test_x_0, test_y_0 = vec_for_learning(models[0], test_tagged)
+    # PV_DBOW encoded text
+    train_x_0, train_y_0 = vec_for_learning(models[0], train_tagged)
+    test_x_0, test_y_0 = vec_for_learning(models[0], test_tagged)
 
-    # # PV_DM encoded text
-    # train_x_1, train_y_1 = vec_for_learning(models[1], train_tagged)
-    # test_x_1, test_y_1 = vec_for_learning(models[1], test_tagged)
+    # PV_DM encoded text
+    train_x_1, train_y_1 = vec_for_learning(models[1], train_tagged)
+    test_x_1, test_y_1 = vec_for_learning(models[1], test_tagged)
+    
+    import pdb
+    pdb.set_trace()
 
 
     # ########## SVC ##########
