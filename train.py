@@ -314,6 +314,14 @@ def tag_data(train, test):
 
     return train_tagged, test_tagged
 
+def tag_data_clustered(train, test):
+    train_tagged = train.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['stemmed']), tags=  [r.bias]), axis=1)
+    test_tagged = test.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['stemmed']), tags=[r.bias]), axis=1)
+
+    return train_tagged, test_tagged
+
 
 #################################
 #                               #
@@ -331,12 +339,16 @@ if __name__ == '__main__':
     ########## preprocess data ##########
     # new = preprocess(data_path='./data/jsons/')
 
+    # data = pd.DataFrame()
+    # data = pd.read_csv("clustered.csv")
+    # data = data.loc[:, ~data.columns.str.contains('^Unnamed')]
 
     ########## random division ##########
     # train2, test2 = train_test_split(data, test_size=0.2)
 
-    # train2.to_csv('train_data_r.csv')
-    # test2.to_csv('test_data_r.csv')
+    # train2.to_csv('train_data_r_c.csv')
+    # test2.to_csv('test_data_r_c.csv')
+
 
     ########## media division ##########
 
@@ -382,8 +394,8 @@ if __name__ == '__main__':
     train = pd.DataFrame()
     test = pd.DataFrame()
 
-    train = pd.read_csv("train_data.csv")
-    test = pd.read_csv("test_data.csv")
+    train = pd.read_csv("train_data_r_c_1000.csv")
+    test = pd.read_csv("test_data_r_c_1000.csv")
     
     # # import pdb
     # # pdb.set_trace()
@@ -391,33 +403,44 @@ if __name__ == '__main__':
     new = pd.concat([train, test])
 
     train_tagged, test_tagged = tag_data(train, test)
+    # train_tagged, test_tagged = tag_data_clustered(train, test)
 
 
     ########## build DOc2Vec models ##########
 
-    # cores = multiprocessing.cpu_count()
-    # models = [
-    #     # PV-DBOW 
-    #     Doc2Vec(dm=0, vector_size=300, negative=5, hs=0, sample=0, min_count=2, workers=cores),
-    #     # PV-DM
-    #     Doc2Vec(dm=1, vector_size=300, negative=5, hs=0, sample=0,    min_count=2, workers=cores)
-    # ]
+    cores = multiprocessing.cpu_count()
+    models = [
+        # PV-DBOW 
+        Doc2Vec(dm=0, vector_size=300, negative=5, hs=0, sample=0, min_count=2, workers=cores),
+        # PV-DM
+        Doc2Vec(dm=1, vector_size=300, negative=5, hs=0, sample=0,    min_count=2, workers=cores)
+    ]
 
-    # for model in models:
-    #     model.build_vocab(train_tagged.values)
-    #     model.train(utils.shuffle(train_tagged.values),
-    #         total_examples=len(train_tagged.values),epochs=30)
+    for model in models:
+        model.build_vocab(train_tagged.values)
+        model.train(utils.shuffle(train_tagged.values),
+            total_examples=len(train_tagged.values),epochs=30)
 
-    # models[0].save("doc2vec_articles_0.model")
-    # models[1].save("doc2vec_articles_1.model")
+    models[0].save("doc2vec_articles_0.model")
+    models[1].save("doc2vec_articles_1.model")
 
-    # # PV_DBOW encoded text
-    # train_x_0, train_y_0 = vec_for_learning(models[0], train_tagged)
-    # test_x_0, test_y_0 = vec_for_learning(models[0], test_tagged)
+    # PV_DBOW encoded text
+    train_x_0, train_y_0 = vec_for_learning(models[0], train_tagged)
+    test_x_0, test_y_0 = vec_for_learning(models[0], test_tagged)
 
-    # # PV_DM encoded text
-    # train_x_1, train_y_1 = vec_for_learning(models[1], train_tagged)
-    # test_x_1, test_y_1 = vec_for_learning(models[1], test_tagged)
+    # PV_DM encoded text
+    train_x_1, train_y_1 = vec_for_learning(models[1], train_tagged)
+    test_x_1, test_y_1 = vec_for_learning(models[1], test_tagged)
+
+    # print(type(train_x_0))
+    # train_x_0_c = np.array([])
+    # for i in range(len(train_x_0)):
+    #     train_x_0_c = np.append(train_x_0_c, [train_x_0[0], train])
+
+    # import pdb
+    # pdb.set_trace()
+
+    # exit()
 
 
     # ########## SVC ##########
