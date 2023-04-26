@@ -50,7 +50,6 @@ from keras.layers import Dense
 from keras import backend as K
 
 
-
 def preprocess(data_path):
     # get the files from the folder
     files = os.listdir(data_path)
@@ -315,6 +314,60 @@ def tag_data(train, test):
     return train_tagged, test_tagged
 
 
+
+
+
+
+def  make_clusters(data):
+    data = pd.DataFrame()
+    data['content'] = new['content']
+    data['bias'] = new['bias']
+    data['content2'] = new['content']
+    data['source'] = new['source']
+    
+    for i in range(len(data['content2'])):
+        data['content2'].iloc[i] = remove_stopwords(data['content2'].iloc[i])
+        if len(data['content2'].iloc[i]) >= 100:
+            data['content2'].iloc[i] = ' '.join((data['content2'].iloc[i]).split()[:100])
+
+    
+    vectorized = vectorize_texts(data['content2'].to_list())
+    
+    clusters = 50
+    kmeans = cluster_texts(clusters, vectorized)
+    kmeansdf = pd.DataFrame()
+    
+    # import pdb
+    # pdb.set_trace()
+
+    kmeansdf['cluster'] = kmeans.labels_
+    kmeansdf['stemmed'] = data['content2']
+    kmeansdf['bias'] = data['bias']
+    kmeans['source'] = data['source']
+    
+    kmeansdf.to_csv('clustered_m.csv')
+    
+    # import pdb
+    # pdb.set_trace()
+    
+    
+    import seaborn as sns
+    # ax = sns.countplot(x= 'kmeans10', data=kmeansdf)
+    # ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
+    
+    
+    dic = get_most_common_words(kmeansdf, 25, clusters)
+    for i in range(clusters):
+        print(dic[i])
+
+
+
+
+
+
+
+
+
 #################################
 #                               #
 # main                          #
@@ -387,8 +440,6 @@ if __name__ == '__main__':
     
     # # import pdb
     # # pdb.set_trace()
-    
-    new = pd.concat([train, test])
 
     train_tagged, test_tagged = tag_data(train, test)
 
@@ -485,43 +536,10 @@ if __name__ == '__main__':
     # import pdb
     # pdb.set_trace()
     
-    data = pd.DataFrame()
-    data['content'] = new['content']
-    data['bias'] = new['bias']
-    data['content2'] = new['content']
     
-    for i in range(len(data['content2'])):
-        data['content2'].iloc[i] = remove_stopwords(data['content2'].iloc[i])
-        if len(data['content2'].iloc[i]) >= 100:
-            data['content2'].iloc[i] = ' '.join((data['content2'].iloc[i]).split()[:100])
-            
-
+    # make_clusters(data)
     
     
-    vectorized = vectorize_texts(data['content2'].to_list())
-    
-    clusters = 50
-    kmeans = cluster_texts(clusters, vectorized)
-    kmeansdf = pd.DataFrame()
-    
-    # import pdb
-    # pdb.set_trace()
-
-    kmeansdf['cluster'] = kmeans.labels_
-    kmeansdf['stemmed'] = data['content2']
-    kmeansdf['bias'] = data['bias']
-    
-    kmeansdf.to_csv('clustered_m.csv')
-    
-    # import pdb
-    # pdb.set_trace()
     
     
-    import seaborn as sns
-    # ax = sns.countplot(x= 'kmeans10', data=kmeansdf)
-    # ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
     
-    
-    dic = get_most_common_words(kmeansdf, 25, clusters)
-    for i in range(clusters):
-        print(dic[i])
