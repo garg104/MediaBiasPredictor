@@ -361,6 +361,14 @@ def  make_clusters(data):
 
 
 
+def tag_data_clustered(train, test):
+    train_tagged = train.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['stemmed']), tags=  [r.bias]), axis=1)
+    test_tagged = test.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['stemmed']), tags=[r.bias]), axis=1)
+
+    return train_tagged, test_tagged
+
 
 #################################
 #                               #
@@ -378,12 +386,16 @@ if __name__ == '__main__':
     ########## preprocess data ##########
     # new = preprocess(data_path='./data/jsons/')
 
+    # data = pd.DataFrame()
+    # data = pd.read_csv("clustered.csv")
+    # data = data.loc[:, ~data.columns.str.contains('^Unnamed')]
 
     ########## random division ##########
     # train2, test2 = train_test_split(data, test_size=0.2)
 
-    # train2.to_csv('train_data_r.csv')
-    # test2.to_csv('test_data_r.csv')
+    # train2.to_csv('train_data_r_c.csv')
+    # test2.to_csv('test_data_r_c.csv')
+
 
     ########## media division ##########
 
@@ -431,9 +443,12 @@ if __name__ == '__main__':
 
     train = pd.read_csv("train_data_r_c_1000.csv")
     test = pd.read_csv("test_data_r_c_1000.csv")
+    train = pd.read_csv("train_data_r_c_1000.csv")
+    test = pd.read_csv("test_data_r_c_1000.csv")
     
 
     train_tagged, test_tagged = tag_data(train, test)
+    # train_tagged, test_tagged = tag_data_clustered(train, test)
 
 
     ########## build DOc2Vec models ##########
@@ -458,6 +473,21 @@ if __name__ == '__main__':
     train_x_0, train_y_0 = vec_for_learning(models[0], train_tagged)
     test_x_0, test_y_0 = vec_for_learning(models[0], test_tagged)
 
+    models[0].save("doc2vec_articles_0.model")
+    models[1].save("doc2vec_articles_1.model")
+
+    # print(type(train_x_0))
+    # train_x_0_c = np.array([])
+    # for i in range(len(train_x_0)):
+    #     train_x_0_c = np.append(train_x_0_c, [train_x_0[0], train])
+    # PV_DBOW encoded text
+    train_x_0, train_y_0 = vec_for_learning(models[0], train_tagged)
+    test_x_0, test_y_0 = vec_for_learning(models[0], test_tagged)
+
+    # import pdb
+    # pdb.set_trace()
+
+    # exit()
     # PV_DM encoded text
     train_x_1, train_y_1 = vec_for_learning(models[1], train_tagged)
     test_x_1, test_y_1 = vec_for_learning(models[1], test_tagged)
