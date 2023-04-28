@@ -355,12 +355,6 @@ def  make_clusters(data):
         print(dic[i])
 
 
-
-
-
-
-
-
 def tag_data_clustered(train, test):
     train_tagged = train.apply(
     lambda r: TaggedDocument(words=tokenize_text(r['stemmed']), tags=  [r.bias]), axis=1)
@@ -443,12 +437,9 @@ if __name__ == '__main__':
 
     train = pd.read_csv("train_data_r_c_1000.csv")
     test = pd.read_csv("test_data_r_c_1000.csv")
-    train = pd.read_csv("train_data_r_c_1000.csv")
-    test = pd.read_csv("test_data_r_c_1000.csv")
-    
 
-    train_tagged, test_tagged = tag_data(train, test)
-    # train_tagged, test_tagged = tag_data_clustered(train, test)
+    # train_tagged, test_tagged = tag_data(train, test)
+    train_tagged, test_tagged = tag_data_clustered(train, test)
 
 
     ########## build DOc2Vec models ##########
@@ -473,13 +464,6 @@ if __name__ == '__main__':
     train_x_0, train_y_0 = vec_for_learning(models[0], train_tagged)
     test_x_0, test_y_0 = vec_for_learning(models[0], test_tagged)
 
-    models[0].save("doc2vec_articles_0.model")
-    models[1].save("doc2vec_articles_1.model")
-
-    # print(type(train_x_0))
-    # train_x_0_c = np.array([])
-    # for i in range(len(train_x_0)):
-    #     train_x_0_c = np.append(train_x_0_c, [train_x_0[0], train])
     # PV_DBOW encoded text
     train_x_0, train_y_0 = vec_for_learning(models[0], train_tagged)
     test_x_0, test_y_0 = vec_for_learning(models[0], test_tagged)
@@ -492,8 +476,41 @@ if __name__ == '__main__':
     train_x_1, train_y_1 = vec_for_learning(models[1], train_tagged)
     test_x_1, test_y_1 = vec_for_learning(models[1], test_tagged)
     
+    train_x_1_array = []
+    for x in train_x_1:
+        xarr = x.tolist()
+        train_x_1_array.append(xarr)
+        
+     
+    train_y_1_array = []
+    for y in train_y_1:
+        temp_y = [0, 0, 0]
+        temp_y[int(y)] = 1
+        train_y_1_array.append(temp_y)
+        
+          
+    from keras import Sequential, Model
+    from keras.optimizers import Adam, RMSprop
+    from keras.layers import Input, Concatenate, Conv2D, Flatten, Dense
+    from keras.layers import LSTM
+    
+    input1 = Input(shape=(300,))
+    input2 = Input(shape=(1,))
+    input = Concatenate()([input1, input2])
+    x = Dense(512)(input)
+    h1 = Dense(256)(x)
+    h2 = Dense(64)(h1)
+    out = Dense(3)(h2)    
+    
+    x1 = np.asarray(train_x_1_array)
+    x2 = train['cluster'].to_numpy()
+    y = np.asarray(train_y_1_array)
+    
+    
+        
     import pdb
-    pdb.set_trace()
+    pdb.set_trace()  
+    
 
 
     # ########## SVC ##########
@@ -540,9 +557,9 @@ if __name__ == '__main__':
     #     model.add(Dense(256, activation='relu'))
     #     model.add(Dense(64, activation='relu'))
     #     model.add(Dense(3,activation='softmax'))
-    #     model.compile(loss='categorical_crossentropy',
-    #         optimizer=tf.keras.optimizers.Adam(learning_rate=0.000001),
-    #         metrics=['acc',recall_m,precision_m,f1_m])
+        # model.compile(loss='categorical_crossentropy',
+        #     optimizer=tf.keras.optimizers.Adam(learning_rate=0.000001),
+        #     metrics=['acc',recall_m,precision_m,f1_m])
 
     # # fit with 90 epochs
     # history_0 = deep_models[0].fit(train_x_0,train_y_0,epochs=90,validation_data=(test_x_0,test_y_0), verbose=1)
