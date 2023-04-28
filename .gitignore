@@ -5,4 +5,4 @@
 *.model
 *.txt
 *.npy
-*.csv
+data/csvs/*.csv
