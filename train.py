@@ -381,8 +381,30 @@ if __name__ == '__main__':
     # new = preprocess(data_path='./data/jsons/')
 
     # data = pd.DataFrame()
-    # data = pd.read_csv("clustered.csv")
+    # data = pd.read_csv("./data/csvs/clustered.csv")
     # data = data.loc[:, ~data.columns.str.contains('^Unnamed')]
+    
+    # cluster = pd.read_csv("./data/csvs/cluster_names.csv")
+    # cluster_names = cluster['names'].to_numpy()
+    # cluster_ids = data['cluster'].to_numpy()
+    
+    # cluster_names_id = cluster_names[cluster_ids]
+    # data['cluster_names'] = cluster_names_id.tolist()
+    # stemmed = data['stemmed'].to_numpy()
+    # appended = cluster_names_id + " : " + stemmed
+    # data['appended'] = appended.tolist()
+    
+    # data.to_csv('clustered_concat.csv')
+    
+    
+    # exit()
+    
+    
+    
+    # import pdb
+    # pdb.set_trace()
+    
+    
 
     ########## random division ##########
     # train2, test2 = train_test_split(data, test_size=0.2)
@@ -435,9 +457,15 @@ if __name__ == '__main__':
     train = pd.DataFrame()
     test = pd.DataFrame()
 
-    train = pd.read_csv("train_data_r_c_1000.csv")
-    test = pd.read_csv("test_data_r_c_1000.csv")
+    train = pd.read_csv("./data/csvs/train_data_r_c_1000.csv")
+    test = pd.read_csv("./data/csvs/test_data_r_c_1000.csv")
+    
+    
+    
 
+    import pdb
+    pdb.set_trace()
+    
     # train_tagged, test_tagged = tag_data(train, test)
     train_tagged, test_tagged = tag_data_clustered(train, test)
 
