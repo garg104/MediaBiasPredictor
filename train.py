@@ -312,6 +312,24 @@ def tag_data(train, test):
     return train_tagged, test_tagged
 
 
+def tag_data_stemmed(train, test):
+    train_tagged = train.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['stemmed']), tags=  [r.bias]), axis=1)
+    test_tagged = test.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['stemmed']), tags=[r.bias]), axis=1)
+
+    return train_tagged, test_tagged
+
+def tag_data_topic(train, test):
+    train_topic = train.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['cluster_names']), tags=  [r.bias]), axis=1)
+    test_topic = test.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['cluster_names']), tags=[r.bias]), axis=1)
+
+
+    return train_topic, test_topic
+
+
 def  make_clusters(data):
     data = pd.DataFrame()
     data['content'] = new['content']
@@ -461,9 +479,14 @@ if __name__ == '__main__':
     train = pd.read_csv("./data/csvs/train_data_r_c.csv")
     test = pd.read_csv("./data/csvs/test_data_r_c.csv")
 
-    
+
+    print("Here")    
     # train_tagged, test_tagged = tag_data(train, test)
-    train_tagged, test_tagged = tag_data_clustered(train, test)
+    train_tagged, test_tagged = tag_data_stemmed(train, test)
+    train_topic_tagged, test_topic_tagged = tag_data_topic(train, test)
+    # train_tagged, test_tagged = tag_data_clustered(train, test)
+    print("Here")
+
 
 
     ########## build DOc2Vec models ##########
@@ -483,14 +506,15 @@ if __name__ == '__main__':
 
     models[0].save("doc2vec_articles_0.model")
     models[1].save("doc2vec_articles_1.model")
+    print("Here")
 
     # PV_DBOW encoded text
     train_x_0, train_y_0 = vec_for_learning(models[0], train_tagged)
     test_x_0, test_y_0 = vec_for_learning(models[0], test_tagged)
-
-    # PV_DBOW encoded text
-    train_x_0, train_y_0 = vec_for_learning(models[0], train_tagged)
-    test_x_0, test_y_0 = vec_for_learning(models[0], test_tagged)
+    print("Here")
+    
+    train_topic_x_0, _ = vec_for_learning(models[0], train_topic_tagged)
+    test_topic_x_0, _ = vec_for_learning(models[0], test_topic_tagged)
 
     # import pdb
     # pdb.set_trace()
@@ -500,6 +524,8 @@ if __name__ == '__main__':
     train_x_1, train_y_1 = vec_for_learning(models[1], train_tagged)
     test_x_1, test_y_1 = vec_for_learning(models[1], test_tagged)
     
+    train_topic_x_1, _ = vec_for_learning(models[1], train_topic_tagged)
+    test_topic_x_1, _ = vec_for_learning(models[1], test_topic_tagged)
    
     
     
@@ -509,95 +535,133 @@ if __name__ == '__main__':
     
 
 
-    # ########## SVC ##########
+    # # ########## SVC ##########
 
-    svc_0, svc_1 = train_SVC(train_x_0, train_y_0, train_x_1, train_y_1)
+    # svc_0, svc_1 = train_SVC(train_x_0, train_y_0, train_x_1, train_y_1)
 
-    accuracy_model_0 = acc(test_y_0, svc_0.predict(test_x_0))
-    accuracy_model_1 = acc(test_y_1, svc_1.predict(test_x_1))
+    # accuracy_model_0 = acc(test_y_0, svc_0.predict(test_x_0))
+    # accuracy_model_1 = acc(test_y_1, svc_1.predict(test_x_1))
 
-    print("SVC accuracy model 0: ", accuracy_model_0)
-    print("SVC accuracy model 1: ", accuracy_model_1)
-
-
-    # ########## Naive Bayes ##########
-
-    bayes_0, bayes_1 = train_NB(train_x_0, train_y_0, train_x_1, train_y_1)
-
-    accuracy_model_0 = acc(test_y_0, bayes_0.predict(test_x_0))
-    accuracy_model_1 = acc(test_y_1, bayes_1.predict(test_x_1))
-
-    print("NB accuracy model 0: ", accuracy_model_0)
-    print("NB accuracy model 1: ", accuracy_model_1)
+    # print("SVC accuracy model 0: ", accuracy_model_0)
+    # print("SVC accuracy model 1: ", accuracy_model_1)
 
 
-    # ########## Random Forest ##########
+    # # ########## Naive Bayes ##########
 
-    forest_0, forest_1 = train_RF(train_x_0, train_y_0, train_x_1, train_y_1)
+    # bayes_0, bayes_1 = train_NB(train_x_0, train_y_0, train_x_1, train_y_1)
 
-    accuracy_model_0 = acc(test_y_0, forest_0.predict(test_x_0))
-    accuracy_model_1 = acc(test_y_1, forest_1.predict(test_x_1))
+    # accuracy_model_0 = acc(test_y_0, bayes_0.predict(test_x_0))
+    # accuracy_model_1 = acc(test_y_1, bayes_1.predict(test_x_1))
 
-    print("RF accuracy model 0: ", accuracy_model_0)
-    print("RF accuracy model 1: ", accuracy_model_1)
+    # print("NB accuracy model 0: ", accuracy_model_0)
+    # print("NB accuracy model 1: ", accuracy_model_1)
+
+
+    # # ########## Random Forest ##########
+
+    # forest_0, forest_1 = train_RF(train_x_0, train_y_0, train_x_1, train_y_1)
+
+    # accuracy_model_0 = acc(test_y_0, forest_0.predict(test_x_0))
+    # accuracy_model_1 = acc(test_y_1, forest_1.predict(test_x_1))
+
+    # print("RF accuracy model 0: ", accuracy_model_0)
+    # print("RF accuracy model 1: ", accuracy_model_1)
 
 
     # ########## DL model Sequential ##########
 
-    train_x_0, train_y_0, test_x_0, test_y_0 = prepare_data_keras(train_x_0, train_y_0, test_x_0, test_y_0)
+    # train_x_0, train_y_0, test_x_0, test_y_0 = prepare_data_keras(train_x_0, train_y_0, test_x_0, test_y_0)
 
-    deep_models = [Sequential(),Sequential()]
+    # deep_models = [Sequential(),Sequential()]
 
-    for model in deep_models:
-        model.add(Dense(512, activation='relu', input_shape=(300,)))
-        model.add(Dense(256, activation='relu'))
-        model.add(Dense(64, activation='relu'))
-        model.add(Dense(3,activation='softmax'))
-        model.compile(loss='categorical_crossentropy',
-            optimizer=tf.keras.optimizers.Adam(learning_rate=0.000001),
-            metrics=['acc',recall_m,precision_m,f1_m])
+    # for model in deep_models:
+    #     model.add(Dense(512, activation='relu', input_shape=(300,)))
+    #     model.add(Dense(256, activation='relu'))
+    #     model.add(Dense(64, activation='relu'))
+    #     model.add(Dense(3,activation='softmax'))
+    #     model.compile(loss='categorical_crossentropy',
+    #         optimizer=tf.keras.optimizers.Adam(learning_rate=0.000001),
+    #         metrics=['acc',recall_m,precision_m,f1_m])
 
-    # fit with 90 epochs
-    history_0 = deep_models[0].fit(train_x_0,train_y_0,epochs=90,validation_data=(test_x_0,test_y_0), verbose=1)
-    history_1 = deep_models[1].fit(train_x_0,train_y_0,epochs=90,validation_data=(test_x_0,test_y_0), verbose=0)
+    # # fit with 90 epochs
+    # history_0 = deep_models[0].fit(train_x_0,train_y_0,epochs=90,validation_data=(test_x_0,test_y_0), verbose=1)
+    # history_1 = deep_models[1].fit(train_x_0,train_y_0,epochs=90,validation_data=(test_x_0,test_y_0), verbose=0)
     
-    # evaluate the models
-    for model in deep_models:
-        model.evaluate(test_x_0, test_y_0, batch_size=128)
+    # # evaluate the models
+    # for model in deep_models:
+    #     model.evaluate(test_x_0, test_y_0, batch_size=128)
 
 
     # ########## DL model Functional API ########## 
 
-    # train_x_1_array = []
-    # for x in train_x_1:
-    #     xarr = x.tolist()
-    #     train_x_1_array.append(xarr)
+    train_x_1_array = []
+    for x in train_x_1:
+        xarr = x.tolist()
+        train_x_1_array.append(xarr)
         
+    train_topic_x_1_array = []
+    for x in train_topic_x_1:
+        xarr = x.tolist()
+        train_topic_x_1_array.append(xarr)
+    
      
-    # train_y_1_array = []
-    # for y in train_y_1:
-    #     temp_y = [0, 0, 0]
-    #     temp_y[int(y)] = 1
-    #     train_y_1_array.append(temp_y)
+    train_y_1_array = []
+    for y in train_y_1:
+        temp_y = [0, 0, 0]
+        temp_y[int(y)] = 1
+        train_y_1_array.append(temp_y)
+        
+        
+        
+    test_x_1_array = []
+    for x in test_x_1:
+        xarr = x.tolist()
+        test_x_1_array.append(xarr)
+        
+    test_topic_x_1_array = []
+    for x in test_topic_x_1:
+        xarr = x.tolist()
+        test_topic_x_1_array.append(xarr)
+    
+    test_y_1_array = []
+    for y in test_y_1:
+        temp_y = [0, 0, 0]
+        temp_y[int(y)] = 1
+        test_y_1_array.append(temp_y)
         
           
-    # from keras import Sequential, Model
-    # from keras.optimizers import Adam, RMSprop
-    # from keras.layers import Input, Concatenate, Conv2D, Flatten, Dense
-    # from keras.layers import LSTM
+    from keras import Sequential, Model
+    from keras.optimizers import Adam, RMSprop
+    from keras.layers import Input, Concatenate, Conv2D, Flatten, Dense
+    from keras.layers import LSTM
     
-    # input1 = Input(shape=(300,))
-    # input2 = Input(shape=(1,))
-    # input = Concatenate()([input1, input2])
-    # x = Dense(512)(input)
-    # h1 = Dense(256)(x)
-    # h2 = Dense(64)(h1)
-    # out = Dense(3)(h2)    
+    input1 = Input(shape=(300,))
+    input2 = Input(shape=(300,))
+    input = Concatenate()([input1, input2])
+    x = Dense(512, activation='relu')(input)
+    h1 = Dense(256, activation='relu')(x)
+    h2 = Dense(64, activation='relu')(h1)
+    out = Dense(3, activation='softmax')(h2)    
     
-    # x1 = np.asarray(train_x_1_array)
-    # x2 = train['cluster'].to_numpy()
-    # y = np.asarray(train_y_1_array)
-        
+    x1 = np.asarray(train_x_1_array)
+    x2 = np.asarray(train_topic_x_1_array)
+    y = np.asarray(train_y_1_array)
+    
+    test_x1 = np.asarray(test_x_1_array)
+    test_x2 = np.asarray(test_topic_x_1_array)
+    test_y = np.asarray(test_y_1_array)
+    
+    model = Model(inputs=[input1, input2], outputs=out)
+    model.summary() 
+    
+    model.compile(loss='categorical_crossentropy',
+            optimizer=tf.keras.optimizers.Adam(learning_rate=0.000001),
+            metrics=['acc',recall_m,precision_m,f1_m])
+    
+    hope1 = model.fit([x1, x2], y,epochs=90,validation_data=([test_x1, test_x2], test_y), verbose=1)
+    
+    model.evaluate([test_x1, test_x2], test_y, batch_size=128)
+
         
     #######################################################################################################
     
