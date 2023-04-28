@@ -476,40 +476,12 @@ if __name__ == '__main__':
     train_x_1, train_y_1 = vec_for_learning(models[1], train_tagged)
     test_x_1, test_y_1 = vec_for_learning(models[1], test_tagged)
     
-    train_x_1_array = []
-    for x in train_x_1:
-        xarr = x.tolist()
-        train_x_1_array.append(xarr)
-        
-     
-    train_y_1_array = []
-    for y in train_y_1:
-        temp_y = [0, 0, 0]
-        temp_y[int(y)] = 1
-        train_y_1_array.append(temp_y)
-        
-          
-    from keras import Sequential, Model
-    from keras.optimizers import Adam, RMSprop
-    from keras.layers import Input, Concatenate, Conv2D, Flatten, Dense
-    from keras.layers import LSTM
-    
-    input1 = Input(shape=(300,))
-    input2 = Input(shape=(1,))
-    input = Concatenate()([input1, input2])
-    x = Dense(512)(input)
-    h1 = Dense(256)(x)
-    h2 = Dense(64)(h1)
-    out = Dense(3)(h2)    
-    
-    x1 = np.asarray(train_x_1_array)
-    x2 = train['cluster'].to_numpy()
-    y = np.asarray(train_y_1_array)
+   
     
     
         
-    import pdb
-    pdb.set_trace()  
+    # import pdb
+    # pdb.set_trace()  
     
 
 
@@ -569,6 +541,38 @@ if __name__ == '__main__':
     # for model in deep_models:
     #     model.evaluate(test_x_0, test_y_0, batch_size=128)
 
+
+    # ########## DL model Functional API ########## 
+
+    # train_x_1_array = []
+    # for x in train_x_1:
+    #     xarr = x.tolist()
+    #     train_x_1_array.append(xarr)
+        
+     
+    # train_y_1_array = []
+    # for y in train_y_1:
+    #     temp_y = [0, 0, 0]
+    #     temp_y[int(y)] = 1
+    #     train_y_1_array.append(temp_y)
+        
+          
+    # from keras import Sequential, Model
+    # from keras.optimizers import Adam, RMSprop
+    # from keras.layers import Input, Concatenate, Conv2D, Flatten, Dense
+    # from keras.layers import LSTM
+    
+    # input1 = Input(shape=(300,))
+    # input2 = Input(shape=(1,))
+    # input = Concatenate()([input1, input2])
+    # x = Dense(512)(input)
+    # h1 = Dense(256)(x)
+    # h2 = Dense(64)(h1)
+    # out = Dense(3)(h2)    
+    
+    # x1 = np.asarray(train_x_1_array)
+    # x2 = train['cluster'].to_numpy()
+    # y = np.asarray(train_y_1_array)
         
         
     #######################################################################################################
