@@ -48,6 +48,10 @@ import tensorflow as tf
 from keras.models import Sequential
 from keras.layers import Dense
 from keras import backend as K
+from keras import Sequential, Model
+from keras.optimizers import Adam, RMSprop
+from keras.layers import Input, Concatenate, Conv2D, Flatten, Dense
+from keras.layers import LSTM
 
 
 def preprocess(data_path):
@@ -132,16 +136,6 @@ def processTrainData(data):
     return bag, count_vector
 
 
-def clean(text):
-    text = BeautifulSoup(text, "lxml").text
-    text = re.sub(r'\|\|\|', r' ', text) 
-    text = text.replace('„','')
-    text = text.replace('“','')
-    text = text.replace('"','')
-    text = text.replace('\'','')
-    text = text.replace('-','')
-    text = text.lower()
-    return text
 
 
 def remove_stopwords(text):
@@ -168,63 +162,115 @@ def remove_stopwords(text):
     
     return text_no_stops
 
-
 def tokenize_text(text):
     tokens = []
     for sent in nltk.sent_tokenize(text):
         for word in nltk.word_tokenize(sent):
-            if len(word) < 3:
-                continue
-            tokens.append(word.lower())
+            if len(word) >= 3:
+                tokens.append(word.lower())
     return tokens
 
-
-def train_SVC(train_x_0, train_y_0, train_x_1, train_y_1):
-    svc_0 = SVC()
-    svc_1 = SVC()
-
-    svc_0.fit(train_x_0,train_y_0)
-    svc_1.fit(train_x_1,train_y_1)
-
-    return svc_0, svc_1
+# def tokenize_text(text):
+#     all_words = nltk.word_tokenize(text)
+#     words = []
+#     for word in all_words:
+#         if len(word) >= 3:
+#             words.append(word.lower())
+#     return words
 
 
-def train_NB(train_x_0, train_y_0, train_x_1, train_y_1):
-    bayes_0 = GaussianNB()
-    bayes_1 = GaussianNB()
+def tag_data(train, test):
+    train_tagged = train.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['content']), tags=  [r.bias]), axis=1)
+    test_tagged = test.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['content']), tags=[r.bias]), axis=1)
 
-    bayes_0.fit(train_x_0,train_y_0)
-    bayes_1.fit(train_x_1,train_y_1)
-
-    return bayes_0, bayes_1
+    return train_tagged, test_tagged
 
 
-def train_RF(train_x_0, train_y_0, train_x_1, train_y_1):
-    # Create random forests with 100 decision trees
-    forest_0 = RandomForestClassifier(n_estimators=100)
-    forest_1 = RandomForestClassifier(n_estimators=100)
+def tag_data_stemmed(train, test):
+    train_tagged = train.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['stemmed']), tags=  [r.bias]), axis=1)
+    test_tagged = test.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['stemmed']), tags=[r.bias]), axis=1)
 
-    forest_0.fit(train_x_0,train_y_0)
-    forest_1.fit(train_x_1,train_y_1)
+    return train_tagged, test_tagged
 
-    return forest_0, forest_1
+def tag_data_topic(train, test):
+    train_topic = train.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['cluster_names']), tags=  [r.bias]), axis=1)
+    test_topic = test.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['cluster_names']), tags=[r.bias]), axis=1)
+
+    return train_topic, test_topic
+
+def tag_data_clustered(train, test):
+    train_tagged = train.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['appended']), tags=  [r.bias]), axis=1)
+    test_tagged = test.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['appended']), tags=[r.bias]), axis=1)
+
+    return train_tagged, test_tagged
+
+
+def tag_data_media(train, test):
+    train_tagged = train.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['media_content']), tags=  [r.bias]), axis=1)
+    test_tagged = test.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['media_content']), tags=[r.bias]), axis=1)
+
+    return train_tagged, test_tagged
+
+
+def tag_data_sources(train, test):
+    train_topic = train.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['source']), tags=  [r.bias]), axis=1)
+    test_topic = test.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['source']), tags=[r.bias]), axis=1)
+
+
+    return train_topic, test_topic
+
+
+def vec_for_learning(model, tagged_docs):
+    sents = tagged_docs.values
+    classes, features = zip(*[(doc.tags[0], model.infer_vector(doc.words)) for doc in sents])
+    return features, classes
+
+
+
+
+def train_SVC(train_x, train_y):
+    svc = SVC()
+    svc.fit(train_x, train_y)
+    return svc
+
+
+
+def train_NB(train_x, train_y):
+    bayes = GaussianNB()
+    bayes.fit(train_x, train_y)
+    return bayes
+
+
+
+def train_RF(train_x, train_y):
+    forest = RandomForestClassifier(n_estimators=100)
+    forest.fit(train_x, train_y)
+    return forest
 
 
 def acc(true, pred):
     acc = 0
     for x,y in zip(true,pred):
-        if(x == y): acc += 1
-    return acc/len(pred)
+        if(x == y): 
+            acc += 1
+    result = acc/len(pred)
+
+    return result
 
 
-
-def vec_for_learning(model, tagged_docs):
-    sents = tagged_docs.values
-    classes, features = zip(*[(doc.tags[0],
-      model.infer_vector(doc.words)) for doc in sents])
-    return features, classes
-
-
+# can delete function
 def prepare_data_keras(train_x,train_y,test_x,test_y):
     tx = np.asarray(train_x)
     ty = np.asarray(train_y)
@@ -237,6 +283,35 @@ def prepare_data_keras(train_x,train_y,test_x,test_y):
                     if el == 1 else np.asarray([1,0,0]) for el in tey]))
     
     return tx,ty,tex,tey
+
+# def prepare_data_kerass(train_x,train_y,test_x,test_y):
+#     tx = np.asarray(train_x)
+#     ty = np.asarray(train_y)
+#     tex = np.asarray(test_x)
+#     tey = np.asarray(test_y)
+    
+#     list_ty = np.empty((0,3), int)
+#     for label in ty:
+#         if label == 0:
+#             list_ty = np.append(list_ty, np.array([[0,0,1]]), axis=0)
+#         elif label == 1:
+#             list_ty = np.append(list_ty, np.array([[0,1,0]]), axis=0)
+#         else:
+#             list_ty = np.append(list_ty, np.array([[1,0,0]]), axis=0)
+            
+#     list_tey = np.empty((0,3), int)
+#     for label in tey:
+#         if label == 0:
+#             list_tey = np.append(list_tey, np.array([[0,0,1]]), axis=0)
+#         elif label == 1:
+#             list_tey = np.append(list_tey, np.array([[0,1,0]]), axis=0)
+#         else:
+#             list_tey = np.append(list_tey, np.array([[1,0,0]]), axis=0)
+            
+#     ty = list_ty
+#     tey = list_tey
+    
+#     return tx,ty,tex,tey
   
   
 def recall_m(y_true, y_pred):
@@ -303,34 +378,7 @@ def get_most_common_words(df, num_words, clusters):
     return common_words
 
 
-def tag_data(train, test):
-    train_tagged = train.apply(
-    lambda r: TaggedDocument(words=tokenize_text(r['content']), tags=  [r.bias]), axis=1)
-    test_tagged = test.apply(
-    lambda r: TaggedDocument(words=tokenize_text(r['content']), tags=[r.bias]), axis=1)
-
-    return train_tagged, test_tagged
-
-
-def tag_data_stemmed(train, test):
-    train_tagged = train.apply(
-    lambda r: TaggedDocument(words=tokenize_text(r['stemmed']), tags=  [r.bias]), axis=1)
-    test_tagged = test.apply(
-    lambda r: TaggedDocument(words=tokenize_text(r['stemmed']), tags=[r.bias]), axis=1)
-
-    return train_tagged, test_tagged
-
-def tag_data_topic(train, test):
-    train_topic = train.apply(
-    lambda r: TaggedDocument(words=tokenize_text(r['cluster_names']), tags=  [r.bias]), axis=1)
-    test_topic = test.apply(
-    lambda r: TaggedDocument(words=tokenize_text(r['cluster_names']), tags=[r.bias]), axis=1)
-
-
-    return train_topic, test_topic
-
-
-def  make_clusters(data):
+def  make_clusters(new):
     data = pd.DataFrame()
     data['content'] = new['content']
     data['bias'] = new['bias']
@@ -349,8 +397,6 @@ def  make_clusters(data):
     kmeans = cluster_texts(clusters, vectorized)
     kmeansdf = pd.DataFrame()
     
-    # import pdb
-    # pdb.set_trace()
 
     kmeansdf['cluster'] = kmeans.labels_
     kmeansdf['stemmed'] = data['content2']
@@ -359,46 +405,13 @@ def  make_clusters(data):
     
     kmeansdf.to_csv('clustered_m.csv')
     
-    # import pdb
-    # pdb.set_trace()
-    
-    
-    import seaborn as sns
-    # ax = sns.countplot(x= 'kmeans10', data=kmeansdf)
-    # ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
-    
     
     dic = get_most_common_words(kmeansdf, 25, clusters)
     for i in range(clusters):
         print(dic[i])
 
 
-def tag_data_clustered(train, test):
-    train_tagged = train.apply(
-    lambda r: TaggedDocument(words=tokenize_text(r['appended']), tags=  [r.bias]), axis=1)
-    test_tagged = test.apply(
-    lambda r: TaggedDocument(words=tokenize_text(r['appended']), tags=[r.bias]), axis=1)
 
-    return train_tagged, test_tagged
-
-
-def tag_data_media(train, test):
-    train_tagged = train.apply(
-    lambda r: TaggedDocument(words=tokenize_text(r['media_content']), tags=  [r.bias]), axis=1)
-    test_tagged = test.apply(
-    lambda r: TaggedDocument(words=tokenize_text(r['media_content']), tags=[r.bias]), axis=1)
-
-    return train_tagged, test_tagged
-
-
-def tag_data_sources(train, test):
-    train_topic = train.apply(
-    lambda r: TaggedDocument(words=tokenize_text(r['source']), tags=  [r.bias]), axis=1)
-    test_topic = test.apply(
-    lambda r: TaggedDocument(words=tokenize_text(r['source']), tags=[r.bias]), axis=1)
-
-
-    return train_topic, test_topic
 
 
 
@@ -516,97 +529,93 @@ if __name__ == '__main__':
         Doc2Vec(dm=1, vector_size=300, negative=5, hs=0, sample=0,    min_count=2, workers=cores)
     ]
 
-    for model in models:
-        model.build_vocab(train_tagged.values)
-        model.train(utils.shuffle(train_tagged.values),
-            total_examples=len(train_tagged.values),epochs=30)
+   
+    models[0].build_vocab(train_tagged.values)
+    models[0].train(utils.shuffle(train_tagged.values), total_examples=len(train_tagged.values),epochs=30)
+    models[1].build_vocab(train_tagged.values)
+    models[1].train(utils.shuffle(train_tagged.values), total_examples=len(train_tagged.values),epochs=30)
 
     models[0].save("doc2vec_articles_0.model")
     models[1].save("doc2vec_articles_1.model")
-    print("Here")
+    
+
 
     # PV_DBOW encoded text
     train_x_0, train_y_0 = vec_for_learning(models[0], train_tagged)
     test_x_0, test_y_0 = vec_for_learning(models[0], test_tagged)
-    print("Here")
-    
+
     train_topic_x_0, _ = vec_for_learning(models[0], train_source_tagged)
     test_topic_x_0, _ = vec_for_learning(models[0], test_source_tagged)
 
-    # import pdb
-    # pdb.set_trace()
 
-    # exit()
     # PV_DM encoded text
     train_x_1, train_y_1 = vec_for_learning(models[1], train_tagged)
     test_x_1, test_y_1 = vec_for_learning(models[1], test_tagged)
-    
+
     train_topic_x_1, _ = vec_for_learning(models[1], train_source_tagged)
     test_topic_x_1, _ = vec_for_learning(models[1], test_source_tagged)
    
-    
-    
-        
-    # import pdb
-    # pdb.set_trace()  
-    
 
 
     # # ########## SVC ##########
 
-    # svc_0, svc_1 = train_SVC(train_x_0, train_y_0, train_x_1, train_y_1)
+    svc_0 = train_SVC(train_x_0, train_y_0)
+    svc_1 = train_SVC(train_x_1, train_y_1)
 
-    # accuracy_model_0 = acc(test_y_0, svc_0.predict(test_x_0))
-    # accuracy_model_1 = acc(test_y_1, svc_1.predict(test_x_1))
+    accuracy_model_0 = acc(test_y_0, svc_0.predict(test_x_0))
+    accuracy_model_1 = acc(test_y_1, svc_1.predict(test_x_1))
 
-    # print("SVC accuracy model 0: ", accuracy_model_0)
-    # print("SVC accuracy model 1: ", accuracy_model_1)
+    print("SVC accuracy model 0: ", accuracy_model_0)
+    print("SVC accuracy model 1: ", accuracy_model_1)
 
 
     # # ########## Naive Bayes ##########
 
-    # bayes_0, bayes_1 = train_NB(train_x_0, train_y_0, train_x_1, train_y_1)
+    bayes_0 = train_NB(train_x_0, train_y_0)
+    bayes_1 = train_NB(train_x_1, train_y_1)
 
-    # accuracy_model_0 = acc(test_y_0, bayes_0.predict(test_x_0))
-    # accuracy_model_1 = acc(test_y_1, bayes_1.predict(test_x_1))
+    accuracy_model_0 = acc(test_y_0, bayes_0.predict(test_x_0))
+    accuracy_model_1 = acc(test_y_1, bayes_1.predict(test_x_1))
 
-    # print("NB accuracy model 0: ", accuracy_model_0)
-    # print("NB accuracy model 1: ", accuracy_model_1)
+    print("NB accuracy model 0: ", accuracy_model_0)
+    print("NB accuracy model 1: ", accuracy_model_1)
 
 
     # # ########## Random Forest ##########
 
-    # forest_0, forest_1 = train_RF(train_x_0, train_y_0, train_x_1, train_y_1)
+    forest_0 = train_RF(train_x_0, train_y_0)
+    forest_1 = train_RF(train_x_1, train_y_1)
 
-    # accuracy_model_0 = acc(test_y_0, forest_0.predict(test_x_0))
-    # accuracy_model_1 = acc(test_y_1, forest_1.predict(test_x_1))
+    accuracy_model_0 = acc(test_y_0, forest_0.predict(test_x_0))
+    accuracy_model_1 = acc(test_y_1, forest_1.predict(test_x_1))
 
-    # print("RF accuracy model 0: ", accuracy_model_0)
-    # print("RF accuracy model 1: ", accuracy_model_1)
+    print("RF accuracy model 0: ", accuracy_model_0)
+    print("RF accuracy model 1: ", accuracy_model_1)
 
 
     # ########## DL model Sequential ##########
 
-    # train_x_0, train_y_0, test_x_0, test_y_0 = prepare_data_keras(train_x_0, train_y_0, test_x_0, test_y_0)
+    train_x_0, train_y_0, test_x_0, test_y_0 = prepare_data_keras(train_x_0, train_y_0, test_x_0, test_y_0)
 
-    # deep_models = [Sequential(),Sequential()]
+    deep_models = [Sequential(),Sequential()]
 
-    # for model in deep_models:
-    #     model.add(Dense(512, activation='relu', input_shape=(300,)))
-    #     model.add(Dense(256, activation='relu'))
-    #     model.add(Dense(64, activation='relu'))
-    #     model.add(Dense(3,activation='softmax'))
-    #     model.compile(loss='categorical_crossentropy',
-    #         optimizer=tf.keras.optimizers.Adam(learning_rate=0.000001),
-    #         metrics=['acc',recall_m,precision_m,f1_m])
+    for model in deep_models:
+        model.add(Dense(512, activation='relu', input_shape=(300,)))
+        model.add(Dense(256, activation='relu'))
+        model.add(Dense(64, activation='relu'))
+        model.add(Dense(3,activation='softmax'))
+        model.compile(loss='categorical_crossentropy',
+            optimizer=tf.keras.optimizers.Adam(learning_rate=0.000001),
+            metrics=['acc',recall_m,precision_m,f1_m])
 
-    # # fit with 90 epochs
-    # history_0 = deep_models[0].fit(train_x_0,train_y_0,epochs=90,validation_data=(test_x_0,test_y_0), verbose=1)
-    # history_1 = deep_models[1].fit(train_x_0,train_y_0,epochs=90,validation_data=(test_x_0,test_y_0), verbose=0)
+    # fit with 90 epochs
+    history_0 = deep_models[0].fit(train_x_0,train_y_0,epochs=90,validation_data=(test_x_0,test_y_0), verbose=1)
+    history_1 = deep_models[1].fit(train_x_0,train_y_0,epochs=90,validation_data=(test_x_0,test_y_0), verbose=0)
+
     
-    # # evaluate the models
-    # for model in deep_models:
-    #     model.evaluate(test_x_0, test_y_0, batch_size=128)
+    # evaluate the models
+    for model in deep_models:
+        model.evaluate(test_x_0, test_y_0, batch_size=128)
 
 
     # ########## DL model Functional API ########## 
@@ -646,11 +655,7 @@ if __name__ == '__main__':
         temp_y[int(y)] = 1
         test_y_1_array.append(temp_y)
         
-          
-    from keras import Sequential, Model
-    from keras.optimizers import Adam, RMSprop
-    from keras.layers import Input, Concatenate, Conv2D, Flatten, Dense
-    from keras.layers import LSTM
+
     
     input1 = Input(shape=(300,))
     input2 = Input(shape=(300,))
