@@ -364,6 +364,15 @@ def tag_data_clustered(train, test):
     return train_tagged, test_tagged
 
 
+def tag_data_media(train, test):
+    train_tagged = train.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['media_content']), tags=  [r.bias]), axis=1)
+    test_tagged = test.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['media_content']), tags=[r.bias]), axis=1)
+
+    return train_tagged, test_tagged
+
+
 #################################
 #                               #
 # main                          #
@@ -458,12 +467,12 @@ if __name__ == '__main__':
     train = pd.DataFrame()
     test = pd.DataFrame()
 
-    train = pd.read_csv("./data/csvs/train_data_r_c.csv")
-    test = pd.read_csv("./data/csvs/test_data_r_c.csv")
+    train = pd.read_csv("./data/csvs/train_data_r_m.csv")
+    test = pd.read_csv("./data/csvs/test_data_r_m.csv")
 
-    
     # train_tagged, test_tagged = tag_data(train, test)
-    train_tagged, test_tagged = tag_data_clustered(train, test)
+    # train_tagged, test_tagged = tag_data_clustered(train, test)
+    train_tagged, test_tagged = tag_data_media(train, test)
 
 
     ########## build DOc2Vec models ##########
