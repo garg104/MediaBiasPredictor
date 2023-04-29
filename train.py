@@ -391,6 +391,18 @@ def tag_data_media(train, test):
     return train_tagged, test_tagged
 
 
+def tag_data_sources(train, test):
+    train_topic = train.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['source']), tags=  [r.bias]), axis=1)
+    test_topic = test.apply(
+    lambda r: TaggedDocument(words=tokenize_text(r['source']), tags=[r.bias]), axis=1)
+
+
+    return train_topic, test_topic
+
+
+
+
 #################################
 #                               #
 # main                          #
@@ -490,8 +502,9 @@ if __name__ == '__main__':
 
     # train_tagged, test_tagged = tag_data(train, test)
     # train_tagged, test_tagged = tag_data_clustered(train, test)
-    train_tagged, test_tagged = tag_data_media(train, test)
-
+    # train_tagged, test_tagged = tag_data_media(train, test)
+    train_tagged, test_tagged = tag_data_stemmed(train, test)
+    train_source_tagged, test_source_tagged = tag_data_sources(train, test)
 
     ########## build DOc2Vec models ##########
 
@@ -517,8 +530,8 @@ if __name__ == '__main__':
     test_x_0, test_y_0 = vec_for_learning(models[0], test_tagged)
     print("Here")
     
-    train_topic_x_0, _ = vec_for_learning(models[0], train_topic_tagged)
-    test_topic_x_0, _ = vec_for_learning(models[0], test_topic_tagged)
+    train_topic_x_0, _ = vec_for_learning(models[0], train_source_tagged)
+    test_topic_x_0, _ = vec_for_learning(models[0], test_source_tagged)
 
     # import pdb
     # pdb.set_trace()
@@ -528,8 +541,8 @@ if __name__ == '__main__':
     train_x_1, train_y_1 = vec_for_learning(models[1], train_tagged)
     test_x_1, test_y_1 = vec_for_learning(models[1], test_tagged)
     
-    train_topic_x_1, _ = vec_for_learning(models[1], train_topic_tagged)
-    test_topic_x_1, _ = vec_for_learning(models[1], test_topic_tagged)
+    train_topic_x_1, _ = vec_for_learning(models[1], train_source_tagged)
+    test_topic_x_1, _ = vec_for_learning(models[1], test_source_tagged)
    
     
     
@@ -599,18 +612,18 @@ if __name__ == '__main__':
     # ########## DL model Functional API ########## 
 
     train_x_1_array = []
-    for x in train_x_1:
+    for x in train_x_0:
         xarr = x.tolist()
         train_x_1_array.append(xarr)
         
     train_topic_x_1_array = []
-    for x in train_topic_x_1:
+    for x in train_topic_x_0:
         xarr = x.tolist()
         train_topic_x_1_array.append(xarr)
     
      
     train_y_1_array = []
-    for y in train_y_1:
+    for y in train_y_0:
         temp_y = [0, 0, 0]
         temp_y[int(y)] = 1
         train_y_1_array.append(temp_y)
@@ -618,17 +631,17 @@ if __name__ == '__main__':
         
         
     test_x_1_array = []
-    for x in test_x_1:
+    for x in test_x_0:
         xarr = x.tolist()
         test_x_1_array.append(xarr)
         
     test_topic_x_1_array = []
-    for x in test_topic_x_1:
+    for x in test_topic_x_0:
         xarr = x.tolist()
         test_topic_x_1_array.append(xarr)
     
     test_y_1_array = []
-    for y in test_y_1:
+    for y in test_y_0:
         temp_y = [0, 0, 0]
         temp_y[int(y)] = 1
         test_y_1_array.append(temp_y)
